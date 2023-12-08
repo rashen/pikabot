@@ -1,0 +1,5 @@
+[build]
+
+# Raspberry Pi 2B
+[target.arm-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc"
