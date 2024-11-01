@@ -1,14 +1,14 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 set -e # Abort at fail
 
 TARGET=arm-unknown-linux-gnueabihf
 TOOLCHAIN=cross-pi-gcc-8.3.0-1
-TARGET_DIR=/home/pi/pikabot/.
-HOST=pi@raspberrypi
+TARGET_DIR=~/pikabot/.
+HOST=rpi
 
 PATH=$HOME/toolchains/${TOOLCHAIN}/bin:$PATH \
-cargo build --release --target $TARGET
+    cargo build --release --target $TARGET
 
 echo "Transfering binary and dependencies"
 scp -r ./target/$TARGET/release/pikabot ${HOST}:${TARGET_DIR}
