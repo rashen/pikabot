@@ -1,3 +1,5 @@
+#![feature(iter_intersperse)]
+
 use poise::serenity_prelude::{self as serenity};
 use std::fs;
 

@@ -28,12 +28,18 @@ fn get_cosmetic_roles(ctx: &Context<'_>) -> Vec<Role> {
 
 #[poise::command(prefix_command, slash_command)]
 pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
-    let roles = get_cosmetic_roles(&ctx);
+    let mut roles = get_cosmetic_roles(&ctx);
+    roles.sort();
     let msg = match roles.is_empty() {
         true => String::from("No groups found"),
         false => roles
             .iter()
-            .fold(String::new(), |acc, r| acc + " " + &r.name),
+            .map(|r| {
+                let name = &r.name;
+                format!("`{name}`")
+            })
+            .intersperse(", ".to_string())
+            .collect::<String>(),
     };
     ctx.say(msg).await?;
 
@@ -63,7 +69,7 @@ pub async fn join(
             member.add_role(ctx.http(), role.id).await?;
             let member_name = member.display_name();
             let role_name = role.name.as_str();
-            ctx.say(format!("{member_name} joined the group {role_name}",))
+            ctx.say(format!("{member_name} joined the group `{role_name}`",))
                 .await?;
         }
     }
@@ -84,7 +90,7 @@ pub async fn leave(
             member.remove_role(ctx.http(), role.id).await?;
             let member_name = member.display_name();
             let role_name = role.name.as_str();
-            ctx.say(format!("{member_name} left group {role_name}",))
+            ctx.say(format!("{member_name} left group `{role_name}`",))
                 .await?;
         }
     }
