@@ -1,7 +1,12 @@
 use crate::{Context, Error};
-use poise::serenity_prelude::{Permissions, Role};
+use anyhow::anyhow;
+use poise::serenity_prelude::{EditRole, Permissions, Role};
 
-#[poise::command(prefix_command, slash_command, subcommands("list", "add", "remove"))]
+#[poise::command(
+    prefix_command,
+    slash_command,
+    subcommands("list", "join", "leave", "create")
+)]
 pub async fn groups(_ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
@@ -46,7 +51,7 @@ async fn autocomplete_group(ctx: Context<'_>, partial: &str) -> Vec<String> {
 }
 
 #[poise::command(prefix_command, slash_command)]
-pub async fn add(
+pub async fn join(
     ctx: Context<'_>,
     #[autocomplete = "autocomplete_group"] group: String,
 ) -> Result<(), Error> {
@@ -56,12 +61,10 @@ pub async fn add(
         if let Some(guild) = ctx.guild().and_then(|g| Some(g.id)) {
             let member = guild.member(ctx.http(), ctx.author()).await?;
             member.add_role(ctx.http(), role.id).await?;
-            ctx.say(format!(
-                "Added {} to group {}",
-                member.display_name(),
-                role.name
-            ))
-            .await?;
+            let member_name = member.display_name();
+            let role_name = role.name.as_str();
+            ctx.say(format!("{member_name} joined the group {role_name}",))
+                .await?;
         }
     }
 
@@ -69,21 +72,50 @@ pub async fn add(
 }
 
 #[poise::command(prefix_command, slash_command)]
-pub async fn remove(ctx: Context<'_>, group: String) -> Result<(), Error> {
+pub async fn leave(
+    ctx: Context<'_>,
+    #[autocomplete = "autocomplete_group"] group: String,
+) -> Result<(), Error> {
     let roles = get_cosmetic_roles(&ctx);
 
     if let Some(role) = roles.iter().find(|r| r.name == group) {
         if let Some(guild) = ctx.guild().and_then(|g| Some(g.id)) {
             let member = guild.member(ctx.http(), ctx.author()).await?;
             member.remove_role(ctx.http(), role.id).await?;
-            ctx.say(format!(
-                "Removed {} from group {}",
-                member.display_name(),
-                role.name
-            ))
-            .await?;
+            let member_name = member.display_name();
+            let role_name = role.name.as_str();
+            ctx.say(format!("{member_name} left group {role_name}",))
+                .await?;
         }
     }
+
+    Ok(())
+}
+
+#[poise::command(prefix_command, slash_command)]
+pub async fn create(ctx: Context<'_>, group: String) -> Result<(), Error> {
+    let member = ctx.author_member().await;
+    let Some(member) = member else {
+        return Err(anyhow!("Could not get member"));
+    };
+
+    let Some(new_role) = get_cosmetic_roles(&ctx).first().and_then(|r: &Role| {
+        let name = group.clone();
+        Some(EditRole::from_role(r).name(name))
+    }) else {
+        return Err(anyhow!("Failed to get already existing roles"));
+    };
+
+    let Some(guild) = ctx.guild_id() else {
+        return Err(anyhow!("Failed to fetch guilds"));
+    };
+
+    guild.create_role(ctx.http(), new_role).await.ok();
+    let author = member.display_name().to_string();
+    ctx.say(format!(
+        "{author} created the new group {group}. Use `/groups join {group}` to join.",
+    ))
+    .await?;
 
     Ok(())
 }

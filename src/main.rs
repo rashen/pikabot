@@ -1,7 +1,7 @@
 use poise::serenity_prelude::{self as serenity};
 use std::fs;
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
+type Error = anyhow::Error;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 // Empty data struct
