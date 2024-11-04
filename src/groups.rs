@@ -110,7 +110,11 @@ pub async fn create(ctx: Context<'_>, group: String) -> Result<(), Error> {
         return Err(anyhow!("Failed to fetch guilds"));
     };
 
-    guild.create_role(ctx.http(), new_role).await.ok();
+    let Ok(role) = guild.create_role(ctx.http(), new_role).await else {
+        return Err(anyhow!("Failed to create role"));
+    };
+
+    let _ = member.add_role(ctx.http(), role.id).await;
     let author = member.display_name().to_string();
     ctx.say(format!(
         "{author} created the new group {group}. Use `/groups join {group}` to join.",
